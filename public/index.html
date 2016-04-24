@@ -1,0 +1,209 @@
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+<link rel="stylesheet" type="text/css" href="dropzone.css">
+<link rel="stylesheet" href="font-awesome.min.css">
+
+
+<style type="text/css">
+    
+    .project-title {
+        text-align: center;
+        font-size: 24px;
+        text-decoration: underline;
+        margin: 10px;
+    }
+    
+    .dropzone {
+        border-radius: 15px;
+        max-width: 85%;
+        margin-left: auto;
+        margin-right: auto;
+        border: 2px dashed #A0D4FB;
+    }
+    
+    body {
+        background-color: #E8E9EC !important;
+    }
+    
+    .process-button, .submit-button {
+        background: #2ADA62;
+        text-align: center;
+        max-width: 150px;
+        color: white;
+        border-radius: 10px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 10px;
+        font-size: 30px;
+        cursor: pointer;
+    }
+    
+    #result {
+        margin-top: 30px;
+    }
+    
+    .feedback {
+        margin-top: 30px;
+        text-align: center;
+    }
+    
+    .rate-text {
+        text-align: center;
+        padding: 5px;
+        font-size: 20px;
+    }
+    
+    #loading {
+        text-align: center;
+    }
+    
+    #result-1, #result-2, #result-3 {
+            max-height: 90%;
+        max-width: 90%;
+        margin: 10px;
+        padding: 10px;
+    }
+    
+</style>
+<html>
+    <head>
+        <title>e6735</title>
+    </head>
+
+    <body>
+        <div class="row">
+            <div class="col-md-12 project-title">
+                Blood Slide Analysis 
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <form action="./file-upload" class="dropzone" id="my-dropzone">
+                    
+                </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="process-button" id="process">Process</div>
+            </div>
+        </div>
+        <div id="loading" style="display:none;">
+            <div class="row">
+                <div class="col-md-12">
+                    <img id="loading-img" src="/images/">
+                </div>
+            </div>
+        </div>
+        <div id="result" style="display:none;">
+            <div class="row">
+                <div class="col-md-4">
+                    Result 1: <span class="diagnostic"></span>
+                    <img id="result-1" src="/images/">
+                </div>
+                <div class="col-md-4">
+                    Result 2: <span class="diagnostic"></span>
+                    <img id="result-2" src="/images/">
+                </div>
+                <div class="col-md-4">
+                    Result 3: <span class="diagnostic"></span>
+                    <img id="result-3" src="/images/">
+                </div>
+            </div>
+            <div class="row feedback">
+                <div class="col-md-12 rate-text">
+                    Rate this result: <span id="rating" data-stars="3"></span>
+                </div>
+            </div>
+        </div>
+    </body>
+
+</html>
+
+<script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
+<script src="jquery-rate-picker.js"></script>
+<script src="dropzone.js"></script>
+
+
+<script type="text/javascript">
+
+
+    var blood = (function () {
+        
+        var self = {};
+        
+        self.init = function() {
+            $('#process').click(function () {
+                var name = $(".dz-filename") .children()[0].innerHTML;
+                if(name == "UPLOAD1_1.jpg") {
+                    console.log("1");
+                    $("#loading-img")[0].src += "Labeled1_1.png";
+                    $("#result-1")[0].src += "Result1_1_1.jpg";
+                    $("#result-2")[0].src += "Result1_1_2.jpg";
+                    $("#result-3")[0].src += "Result1_1_3.jpg";
+                    $(".diagnostic").each(function(x,y) {
+                        y.textContent= "acute lymphoblastic leukemia";
+                    })
+                } else if(name == "UPLOAD2_0.jpg"){
+                    $("#loading-img")[0].src += "Labeled2_0.png";
+                    $("#result-1")[0].src += "Result2_0_1.jpg";
+                    $("#result-2")[0].src += "Result2_0_2.jpg";
+                    $("#result-3")[0].src += "Result2_0_3.jpg";
+                    $(".diagnostic").each(function(x,y) {
+                        y.textContent= "healthy";
+                    })
+                } else {
+                    $("#loading-img")[0].src += "";
+                    $("#result-1")[0].src += "Im001_1.jpg";
+                    $("#result-2")[0].src += "Im104_1.jpg";
+                    $("#result-3")[0].src += "Im248_0.jpg";
+                }
+                $('#loading').show();
+                setTimeout($('#result').show(), 2700);
+            });
+            
+            initRating();
+
+        };
+        
+        function initRating() {
+            $.ratePicker("#rating", {
+
+              // maximum number of rating symbols
+              max: 5,
+
+              // custom colors
+              rgbOn:"#e74c3c",
+              rgbOff:"rgb(189, 195, 199)",
+              rgbSelection:"#e74c3c",
+
+              // custom cursor
+              //cursor:"crosshair",
+
+              // custom rating symbol
+              indicator:"fa-circle",
+                
+              rate : function (stars){
+                  var data = {};
+                  data.stars = stars;
+                  $.ajax({
+						type: 'POST',
+						data: JSON.stringify(data),
+				        contentType: 'application/json',
+                        url: 'http://localhost:3000/feedback',						
+                        success: function(data) {
+                            console.log('success');
+                            console.log(JSON.stringify(data));
+                        }
+                    });
+              }
+
+            });
+        }
+        
+        return self;
+    })();
+    
+    $( document ).ready(blood.init());
+    
+</script>
