@@ -133,71 +133,75 @@
         var self = {};
         
         self.init = function() {
-            $('#process').click(function () {
-                var name = $(".dz-filename") .children()[0].innerHTML;
-                if(name == "UPLOAD1_1.jpg") {
-                    console.log("1");
-                    $("#loading-img")[0].src += "Labeled1_1.png";
-                    $("#result-1")[0].src += "Result1_1_1.jpg";
-                    $("#result-2")[0].src += "Result1_1_2.jpg";
-                    $("#result-3")[0].src += "Result1_1_3.jpg";
-                    $(".diagnostic").each(function(x,y) {
-                        y.textContent= "acute lymphoblastic leukemia";
-                    })
-                } else if(name == "UPLOAD2_0.jpg"){
-                    $("#loading-img")[0].src += "Labeled2_0.png";
-                    $("#result-1")[0].src += "Result2_0_1.jpg";
-                    $("#result-2")[0].src += "Result2_0_2.jpg";
-                    $("#result-3")[0].src += "Result2_0_3.jpg";
-                    $(".diagnostic").each(function(x,y) {
-                        y.textContent= "healthy";
-                    })
-                } else {
-                    $("#loading-img")[0].src += "";
-                    $("#result-1")[0].src += "Im001_1.jpg";
-                    $("#result-2")[0].src += "Im104_1.jpg";
-                    $("#result-3")[0].src += "Im248_0.jpg";
-                }
-                $('#loading').show();
-                setTimeout($('#result').show(), 2700);
-            });
-            
+            $('#process').click(process);            
             initRating();
-
         };
         
-        function initRating() {
+        var process = function () {
+            var uploaded = $(".dz-filename") .children();
+            if(uploaded.length>0) {
+                $.ajax({
+                    type: 'POST',
+                    url: 'http://localhost:3000/process',						
+                    success: function(data) {
+                        console.log('success');
+                        console.log(JSON.stringify(data));
+                        showResult(JSON.stringify(data));
+                    }
+                });
+                
+                $("#loading-img")[0].src += "Labeled1_1.png";
+                $('#loading').show();
+                setTimeout(showResult, 2700);
+            }
+        }
+        
+        var showResult = function(results) {
+            for(var i = 1; i<=3; i++) {
+                $("#result-"+i)[0].src += results.image[i];
+            }
+            $(".diagnostic").each(function(x,y) {
+                y.textContent= results.name;
+            });
+            $('#result').show();
+        };
+        
+        var initRating = function() {
             $.ratePicker("#rating", {
 
-              // maximum number of rating symbols
-              max: 5,
+                // maximum number of rating symbols
+                max: 5,
 
-              // custom colors
-              rgbOn:"#e74c3c",
-              rgbOff:"rgb(189, 195, 199)",
-              rgbSelection:"#e74c3c",
+                // custom colors
+                rgbOn:"#e74c3c",
+                rgbOff:"rgb(189, 195, 199)",
+                rgbSelection:"#e74c3c",
 
-              // custom cursor
-              //cursor:"crosshair",
+                // custom cursor
+                //cursor:"crosshair",
 
-              // custom rating symbol
-              indicator:"fa-circle",
-                
-              rate : function (stars){
-                  var data = {};
-                  data.stars = stars;
-                  $.ajax({
-						type: 'POST',
-						data: JSON.stringify(data),
-				        contentType: 'application/json',
-                        url: 'http://localhost:3000/feedback',						
-                        success: function(data) {
-                            console.log('success');
-                            console.log(JSON.stringify(data));
-                        }
-                    });
-              }
+                // custom rating symbol
+                indicator:"fa-circle",
 
+                rate : function (stars){
+                    rateResults(stars);
+                }
+
+            });            
+        };
+        
+        var rateResults = function(stars) {
+            var data = {};
+            data.stars = stars;
+            $.ajax({
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                url: 'http://localhost:3000/feedback',						
+                success: function(data) {
+                    console.log('success');
+                    console.log(JSON.stringify(data));
+                }
             });
         }
         
