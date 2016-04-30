@@ -1,7 +1,7 @@
 import os, sys, glob, random, cv2, numpy
 
 
-for infile in glob.glob("images/*.[jJ][pP][gG]")+glob.glob("images/*.[jJ][pP][eE][gG]"):
+for infile in glob.glob("public/images/*.[jJ][pP][gG]")+glob.glob("public/images/*.[jJ][pP][eE][gG]"):
 	f = open('source_info.txt', 'a')
 	#We first process the filename and determine the label value
 	label_val = 0

@@ -21,14 +21,14 @@ con.connect(function(err){
 });
 
 // SET UP THE UPLOAD PROC
-var uploaded = '';
+var uploaded = [];
 var storage = multer.diskStorage({
   destination: function (req, file, callback) {
     callback(null, './public/images');
   },
   filename: function (req, file, callback) {
     var name = file.fieldname + '-' + Date.now() + file.mimetype.replace('image/','.');
-    uploaded = '/public/images/'+name;
+    uploaded.push('/public/images/'+name);
     callback(null, name);
   }
 });
@@ -50,40 +50,65 @@ app.post('/file-upload', function (req, res) {
 });
 
 app.post('/process', function (req, res) {
-    if(uploaded == '')
+    if(uploaded.length == 0)
         return;
     
-    // run image analysis TODO
-    var pyshell = new PythonShell('my_script.py');
-    pyshell.send('hello');
-    pyshell.on('message', function (message) {
-      console.log(message);
-    });
-    pyshell.end(function (err) {
-      if (err) throw err;
-      console.log('finished');
-    });
+    var results = [];
+    var similarImages = [];
     
-    // get similar images
-    var similar = [];
-    var query = `SELECT name, ABS(total_stained_cells - ?) as diff FROM blood_db.main
-                ORDER BY diff 
-                LIMIT 5`;
-    con.query(query, [totalStainedCells], function(err,rows){
-        if(err) throw err;
+    for(var i = 0; i<uploaded.length; i++) {
+        
+        // run image analysis TODO
+        var pyshell = new PythonShell('my_script.py');
+        pyshell.send('hello');
+        pyshell.on('message', function (message) {
+          console.log(message);
+        });
+        pyshell.end(function (err) {
+          if (err) throw err;
+          console.log('finished');
+        });
 
-        console.log('Data received from Db:\n');
-        console.log(rows);
-        similar.push(rows);
-    });
+        // object returned by analysis
+        var result = {
+            name : 'name',
+            totalStainedCells : 0,
+            disease : 'disease',
+            x : 0,
+            y : 0,
+            z : 0
+        };
+        
+        results.push(result);
+
+        // get similar images
+        var similar = [];
+        var query = `SELECT name, ABS(total_stained_cells - ?) as diff FROM blood_db.main
+                    ORDER BY diff 
+                    LIMIT 5`;
+        con.query(query, [result.totalStainedCells], function(err,rows){
+            if(err) throw err;
+
+            console.log('Data received from Db:\n');
+            console.log(rows);
+            similar.push(rows);
+        });
+        
+        similarImages.push(similar);
+        
+    }
 
     // update the table with new data
-    var name, totalStainedCells, disease, x, y;
-    query = `INSERT INTO blood_db.main (name, total_stained_cells, disease_tag)
-              VALUES (?, ?, ?);
-              INSERT INTO blood_db.stained_cells_position (fk_main_id, x, y, z)
-              SELECT id, ?, ?, ? FROM blood_db.main where name=?;`;
-    var params = [name, totalStainedCells, disease, x, y, z, name];
+    var query = '';
+    var params = [];
+    for(var i = 0; i<results.lenght; i++) {
+        var r = results[i];
+        query += `INSERT INTO blood_db.main (name, total_stained_cells, disease_tag)
+                  VALUES (?, ?, ?);
+                  INSERT INTO blood_db.stained_cells_position (fk_main_id, x, y, z)
+                  SELECT id, ?, ?, ? FROM blood_db.main where name=?;`;
+        params = params.concat([r.name, r.totalStainedCells, r.disease, r.x, r.y, r.z, r.name]);
+    }
     
     // run insert query
     con.query(query, params, function (err, result) {
@@ -91,7 +116,10 @@ app.post('/process', function (req, res) {
         console.log("Inserted" + result);
     });
     
-    res.end(similar);
+    res.end({
+        results : results,
+        similar : similarImages
+    });
 });
 
 app.post('/feedback', function (req, res) {

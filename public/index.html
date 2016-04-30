@@ -19,10 +19,14 @@
         margin-left: auto;
         margin-right: auto;
         border: 2px dashed #A0D4FB;
+        font-size: 24px;
     }
     
     body {
-        background-color: #E8E9EC !important;
+        background-color: #CED1D8 !important;
+        width: 85%;
+        margin-left: auto;
+        margin-right: auto;
     }
     
     .process-button, .submit-button {
@@ -36,10 +40,12 @@
         padding: 10px;
         font-size: 30px;
         cursor: pointer;
+        margin-bottom: 30px;
     }
     
-    #result {
-        margin-top: 30px;
+    .disabled {
+        background: darkgray !important;
+        cursor: default !important;
     }
     
     .feedback {
@@ -55,13 +61,42 @@
     
     #loading {
         text-align: center;
+        background: white;
+        opacity: .7;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
     }
     
-    #result-1, #result-2, #result-3 {
-            max-height: 90%;
-        max-width: 90%;
+    .spinner {
+            margin-top: 10%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .cell-type {
+        margin-left: 10%;
+        background: white;
+        width: 80%;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        font-size: 18px;
+    }
+    
+    .cell-type-thmb {
         margin: 10px;
-        padding: 10px;
+    }
+    
+    .cell-type-form {
+        margin-top: 10%;
+    }
+    
+    .disease-name {
+        font-size: 24px;
+        padding: 15px;
     }
     
 </style>
@@ -83,47 +118,47 @@
                 </form>
             </div>
         </div>
-        <div class="row">
+        <div class="row" id='after-zone'>
             <div class="col-md-12">
-                <div class="process-button" id="process">Process</div>
+                <div class="process-button disabled" id="process">Process</div>
             </div>
         </div>
         <div id="loading" style="display:none;">
-            <div class="row">
-                <div class="col-md-12">
-                    <img id="loading-img" src="/images/">
-                </div>
-            </div>
-        </div>
-        <div id="result" style="display:none;">
-            <div class="row">
-                <div class="col-md-4">
-                    Result 1: <span class="diagnostic"></span>
-                    <img id="result-1" src="/images/">
-                </div>
-                <div class="col-md-4">
-                    Result 2: <span class="diagnostic"></span>
-                    <img id="result-2" src="/images/">
-                </div>
-                <div class="col-md-4">
-                    Result 3: <span class="diagnostic"></span>
-                    <img id="result-3" src="/images/">
-                </div>
-            </div>
-            <div class="row feedback">
-                <div class="col-md-12 rate-text">
-                    Rate this result: <span id="rating" data-stars="3"></span>
-                </div>
-            </div>
+            <img class="spinner" src='spinner.gif'>
         </div>
     </body>
 
 </html>
 
 <script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
+   <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.templates/beta1/jquery.tmpl.js"></script>
 <script src="jquery-rate-picker.js"></script>
 <script src="dropzone.js"></script>
 
+<script id="cell-type-template" type="text/x-jQuery-tmpl">        
+        <div class='row cell-type'>
+            <div class="col-md-4">
+                <img data-dz-thumbnail id='thmb-${index}' class='cell-type-thmb' src=${thmb}>
+            </div>
+            <div class="col-md-8" id='result-image-${index}'>
+                <form action="" id='image${index}-cell-type' class='cell-type-form'>
+                    Cell Type: 
+                    <input type="radio" id="uwhite-${index}" name="cell-${index}" value="0" checked> Unstained white
+                    <input type="radio" id="swhite-${index}" name="cell-${index}" value="1"> Stained white
+                    <input type="radio" id="red-${index}" name="cell-${index}" value="2"> Red
+                </form>
+            </div>
+        </div>
+</script>
+
+<script id="result-template" type="text/x-jQuery-tmpl">    
+        <div>
+            <div class="disease-name" id="result-${index}">
+                ${disease}
+            </div>
+            Please rate the results <span id="rating-${index}" data-stars="0"></span>
+        </div>
+</script>
 
 <script type="text/javascript">
 
@@ -133,43 +168,85 @@
         var self = {};
         
         self.init = function() {
-            $('#process').click(process);            
+            self.cellTypes = [];
+            
+            Dropzone.options.myDropzone = {
+              init: function() {
+                this.on("thumbnail", askCellType);
+              }
+            };
+
+            
             initRating();
         };
         
+        var askCellType = function(uri) {
+            if(self.cellTypes.length == 0) {
+                // uploaded the first image
+                $('#process').removeClass('disabled');
+                $('#process').click(process);   
+            }
+            
+            var id = self.cellTypes.length;
+            var x = {
+                thmb: uri.previewElement.children[0].children[0].src,
+                index: id
+            };
+            
+            $('#cell-type-template').tmpl([x]).insertBefore('#after-zone');
+            self.cellTypes.push(0); // default unstained white
+            $('input[type=radio][name=cell-' + id +']').change(changedBloodType); // add listener is the blood type changes
+        };
+        
+        var changedBloodType = function(e) {
+            var index = parseInt(this.id.match(/\d/)[0]);
+            self.cellTypes[index] = parseInt(this.value);
+        };
+        
         var process = function () {
+            // show loading screen
+            $('#loading').show();
+            
+            // FOR DEBUG
+            setTimeout(showResult, 3000);
+            return;
+            
+            // post request
             var uploaded = $(".dz-filename") .children();
             if(uploaded.length>0) {
                 $.ajax({
                     type: 'POST',
-                    url: 'http://localhost:3000/process',						
+                    url: 'http://localhost:3000/process',	
+                    data: self.cellTypes,
                     success: function(data) {
-                        console.log('success');
-                        console.log(JSON.stringify(data));
                         showResult(JSON.stringify(data));
                     }
                 });
                 
-                $("#loading-img")[0].src += "Labeled1_1.png";
-                $('#loading').show();
-                setTimeout(showResult, 2700);
             } else {
                 alert("Upload an image first");
             }
         }
         
         var showResult = function(results) {
-            for(var i = 1; i<=3; i++) {
-                $("#result-"+i)[0].src += results.image[i];
+            // DEBUG
+            if(results == null) {
+                results = [
+                    {disease: 'disease', index:0}
+                ];    
             }
-            $(".diagnostic").each(function(x,y) {
-                y.textContent= results.name;
-            });
-            $('#result').show();
+            
+            $('#loading').hide();
+            $('#process').hide();
+            for(var i = 0; i<results.length; i++) {
+                $('#result-template').tmpl(results[i]).insertBefore('#image'+ i +'-cell-type');
+                $('#image'+i+'-cell-type').hide();
+                initRating('rating-'+i);
+            }
         };
         
-        var initRating = function() {
-            $.ratePicker("#rating", {
+        var initRating = function(id) {
+            $.ratePicker('#' + id, {
 
                 // maximum number of rating symbols
                 max: 5,
@@ -186,15 +263,20 @@
                 indicator:"fa-circle",
 
                 rate : function (stars){
-                    rateResults(stars);
+                    rateResults(stars, id);
                 }
 
             });            
         };
         
-        var rateResults = function(stars) {
-            var data = {};
-            data.stars = stars;
+        var rateResults = function(stars, id) {
+            // FOR DEBUG
+            return;
+            
+            var data = {
+                stars: stars,
+                index: parseInt(id.replace('rating-', ''))
+            };
             $.ajax({
                 type: 'POST',
                 data: JSON.stringify(data),
