@@ -1,5 +1,6 @@
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 <link rel="stylesheet" type="text/css" href="dropzone.css">
+<link rel="stylesheet" href="jquery.fancybox.css?v=2.1.5" type="text/css" media="screen" />
 <link rel="stylesheet" href="font-awesome.min.css">
 
 <style type="text/css">
@@ -22,9 +23,6 @@
     
     body {
         background-color: #CED1D8 !important;
-        width: 85%;
-        margin-left: auto;
-        margin-right: auto;
     }
     
     .process-button, .submit-button {
@@ -97,6 +95,12 @@
         padding: 15px;
     }
     
+    .similar {
+        width: 120px;
+        height: 120px;
+        margin-top: 10px;
+    }
+    
 </style>
 <html>
     <head>
@@ -129,16 +133,17 @@
 </html>
 
 <script src="https://code.jquery.com/jquery-1.12.0.min.js"></script>
-   <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.templates/beta1/jquery.tmpl.js"></script>
+<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.templates/beta1/jquery.tmpl.js"></script>
 <script src="jquery-rate-picker.js"></script>
 <script src="dropzone.js"></script>
+<script type="text/javascript" src="jquery.fancybox.pack.js?v=2.1.5"></script>
 
 <script id="cell-type-template" type="text/x-jQuery-tmpl">        
         <div class='row cell-type'>
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <img data-dz-thumbnail id='thmb-${index}' class='cell-type-thmb' src=${thmb}>
             </div>
-            <div class="col-md-8" id='result-image-${index}'>
+            <div class="col-md-10" id='result-image-${index}'>
                 <form action="" id='image${index}-cell-type' class='cell-type-form'>
                     Cell Type: 
                     <input type="radio" id="uwhite-${index}" name="cell-${index}" value="0" checked> Unstained white
@@ -150,11 +155,28 @@
 </script>
 
 <script id="result-template" type="text/x-jQuery-tmpl">    
-        <div>
-            <div class="disease-name" id="result-${index}">
-                ${disease}
+        <div class="row">
+            <div class="col-md-2">
+                <a class="fancybox" rel="group" href="${similar1}">
+                    <img class="similar" src="${similar1}"/>
+                </a>
             </div>
-            Please rate the results <span id="rating-${index}" data-stars="0"></span>
+            <div class="col-md-2">
+                <a class="fancybox" rel="group" href="${similar2}">
+                    <img class="similar" src="${similar2}"/>
+                </a>
+            </div>
+            <div class="col-md-2">
+                <a class="fancybox" rel="group" href="${similar3}">
+                    <img class="similar" src="${similar3}"/>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <div class="disease-name" id="result-${index}">
+                    ${disease}
+                </div>
+                Please rate the results <span id="rating-${index}" data-stars="0"></span>
+            </div>
         </div>
 </script>
 
@@ -215,7 +237,7 @@
                     url: 'http://localhost:3000/process',	
                     data: self.cellTypes,
                     success: function(data) {
-                        showResult(data.results);
+                        showResult(data.results, data.similar);
                     }
                 });
                 
@@ -224,12 +246,17 @@
             }
         }
         
-        var showResult = function(results) {
+        var showResult = function(results, similar) {
             // DEBUG
             if(results == null) {
                 results = self.cellTypes.map(function(x,i) {
                     return {disease: 'Unknown'}; 
                 });   
+            }
+            if(similar == null) {
+                similar = self.cellTypes.map(function(x) {
+                    return ['images/Im001_1.jpg', 'images/Im104_1.jpg', 'images/Im248_0.jpg'];
+                });
             }
             
             $('#loading').hide();
@@ -237,12 +264,17 @@
             for(var i = 0; i<results.length; i++) {
                 var variables = {
                     disease:results[i].disease,
-                    index: i
+                    index: i,
+                    similar1: similar[i][0],
+                    similar2:similar[i][1],
+                    similar3:similar[i][2]
                 };
                 $('#result-template').tmpl(variables).insertBefore('#image'+ i +'-cell-type');
                 $('#image'+i+'-cell-type').hide();
                 initRating('rating-'+i);
             }
+            
+            $(".fancybox").fancybox();
         };
         
         var initRating = function(id) {

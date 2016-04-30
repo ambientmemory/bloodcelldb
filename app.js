@@ -67,7 +67,7 @@ app.post('/process', function (req, res) {
         if (err) throw err;
         // results is an array consisting of messages collected during execution
         console.log('results: %j', r);
-        results = (JSON.parse(r));
+        results = r;
         
     });
     
