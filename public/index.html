@@ -1,8 +1,6 @@
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-
 <link rel="stylesheet" type="text/css" href="dropzone.css">
 <link rel="stylesheet" href="font-awesome.min.css">
-
 
 <style type="text/css">
     
@@ -229,15 +227,19 @@
         var showResult = function(results) {
             // DEBUG
             if(results == null) {
-                results = [
-                    {disease: 'disease', index:0}
-                ];    
+                results = self.cellTypes.map(function(x,i) {
+                    return {disease: 'Unknown'}; 
+                });   
             }
             
             $('#loading').hide();
             $('#process').hide();
             for(var i = 0; i<results.length; i++) {
-                $('#result-template').tmpl(results[i]).insertBefore('#image'+ i +'-cell-type');
+                var variables = {
+                    disease:results[i].disease,
+                    index: i
+                };
+                $('#result-template').tmpl(variables).insertBefore('#image'+ i +'-cell-type');
                 $('#image'+i+'-cell-type').hide();
                 initRating('rating-'+i);
             }

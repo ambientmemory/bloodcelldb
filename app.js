@@ -6,8 +6,8 @@ var multer = require('multer');
 var fs = require('fs');
 var mysql = require("mysql");
 var PythonShell = require('python-shell');
+var favicon = require('serve-favicon');
 var private = require('./private.js');
-
 
 // CONNECT TO DB
 var con = private.connectDB();
@@ -39,6 +39,9 @@ var upload = multer({ storage : storage}).single('file');
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json());
 
+// SET FAVICON
+app.use(favicon(__dirname + '/public/icon.jpg'));
+
 // DEFINE ROUTES
 app.post('/file-upload', function (req, res) {
     upload(req,res,function(err) {
@@ -56,33 +59,23 @@ app.post('/process', function (req, res) {
     var results = [];
     var similarImages = [];
     
+    // run python script on all uploaded images
+    var options = {
+        args: uploaded
+    };
+    PythonShell.run('testing.py', options, function (err, r) {
+        if (err) throw err;
+        // results is an array consisting of messages collected during execution
+        console.log('results: %j', r);
+        results = r;
+        
+    });
+    
     // FOR DEBUG
-    var m;
-    var pyshell = new PythonShell('testing.py');
-    pyshell.send('4');
-    pyshell.on('message', function (message) {
-      console.log(message);
-        m=message;
-    });
-    pyshell.end(function (err) {
-      if (err) throw err;
-      console.log('finished');
-    });
-    res.json({result:[{disease: 'Something', index:0}]});
+    res.json({result:[{disease: 'Cancer', index:0}]});
     return;
     
     for(var i = 0; i<uploaded.length; i++) {
-        
-        // run image analysis TODO
-        var pyshell = new PythonShell('testing.py');
-        pyshell.send('hello');
-        pyshell.on('message', function (message) {
-          console.log(message);
-        });
-        pyshell.end(function (err) {
-          if (err) throw err;
-          console.log('finished');
-        });
 
         // object returned by analysis
         var result = {
@@ -131,7 +124,7 @@ app.post('/process', function (req, res) {
         console.log("Inserted" + result);
     });
     
-    res.end({
+    res.json({
         results : results,
         similar : similarImages
     });

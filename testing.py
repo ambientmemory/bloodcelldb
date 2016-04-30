@@ -1,6 +1,9 @@
 import sys
 
-for line in sys.stdin:
-    print line
+path = sys.argv[1] # the first parameter
 
-print "{disease: 'disease', index:0}"
+# do something here on the image
+# ...
+
+# return the result to node by printing them
+print "{disease: 'Cancer', index:0}"
