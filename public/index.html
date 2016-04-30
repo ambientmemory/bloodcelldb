@@ -207,9 +207,7 @@
             // show loading screen
             $('#loading').show();
             
-            // FOR DEBUG
-            setTimeout(showResult, 3000);
-            return;
+            //setTimeout(showResult, 2000);
             
             // post request
             var uploaded = $(".dz-filename") .children();
@@ -219,7 +217,7 @@
                     url: 'http://localhost:3000/process',	
                     data: self.cellTypes,
                     success: function(data) {
-                        showResult(JSON.stringify(data));
+                        showResult(data.result);
                     }
                 });
                 

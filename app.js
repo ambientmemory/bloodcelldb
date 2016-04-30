@@ -56,10 +56,25 @@ app.post('/process', function (req, res) {
     var results = [];
     var similarImages = [];
     
+    // FOR DEBUG
+    var m;
+    var pyshell = new PythonShell('testing.py');
+    pyshell.send('4');
+    pyshell.on('message', function (message) {
+      console.log(message);
+        m=message;
+    });
+    pyshell.end(function (err) {
+      if (err) throw err;
+      console.log('finished');
+    });
+    res.json({result:[{disease: 'Something', index:0}]});
+    return;
+    
     for(var i = 0; i<uploaded.length; i++) {
         
         // run image analysis TODO
-        var pyshell = new PythonShell('my_script.py');
+        var pyshell = new PythonShell('testing.py');
         pyshell.send('hello');
         pyshell.on('message', function (message) {
           console.log(message);
