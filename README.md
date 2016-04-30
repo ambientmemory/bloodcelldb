@@ -11,9 +11,9 @@ Data sourced from: http://imagebank.hematology.org/ as well as http://library.me
 
 #####TODO:
 * UI:
-    * Ask what type of cell
+    * Test with real response from server
 * Server:
-    * Call Python on the uploaded file
-    * Return results
+    * Call Python on the uploaded files by passing them via the command line
+    * Test writing to SQL
 * ML Proc:
     * Test
