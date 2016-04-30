@@ -67,27 +67,27 @@ app.post('/process', function (req, res) {
         if (err) throw err;
         // results is an array consisting of messages collected during execution
         console.log('results: %j', r);
-        results = r;
+        results = (JSON.parse(r);
         
     });
     
     // FOR DEBUG
-    res.json({result:[{disease: 'Cancer', index:0}]});
+    res.json({results:[{disease: 'Cancer', index:0}]});
     return;
     
-    for(var i = 0; i<uploaded.length; i++) {
+    for(var i = 0; i<results.length; i++) {
+        var result = results[i];
 
-        // object returned by analysis
+        /* object returned by analysis
         var result = {
-            name : 'name',
+            name : 'filename',
             totalStainedCells : 0,
             disease : 'disease',
             x : 0,
             y : 0,
             z : 0
         };
-        
-        results.push(result);
+        */
 
         // get similar images
         var similar = [];
@@ -109,7 +109,7 @@ app.post('/process', function (req, res) {
     // update the table with new data
     var query = '';
     var params = [];
-    for(var i = 0; i<results.lenght; i++) {
+    for(var i = 0; i<results.length; i++) {
         var r = results[i];
         query += `INSERT INTO blood_db.main (name, total_stained_cells, disease_tag)
                   VALUES (?, ?, ?);

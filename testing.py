@@ -6,4 +6,5 @@ path = sys.argv[1] # the first parameter
 # ...
 
 # return the result to node by printing them
-print "{disease: 'Cancer', index:0}"
+for i in sys.argv[1:]:
+    print "{name : 'name', totalStainedCells : 0, disease : 'disease', x : 0, y : 0, z : 0}"
