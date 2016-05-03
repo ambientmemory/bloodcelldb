@@ -86,8 +86,9 @@
         margin: 10px;
     }
     
-    .cell-type-form {
-        margin-top: 10%;
+    .cell-type-form, .cell-type-form-all {
+        margin-top: 30px;
+        text-align: center;
     }
     
     .disease-name {
@@ -118,6 +119,17 @@
             <div class="col-md-12">
                 <form action="./file-upload" class="dropzone" id="my-dropzone">
                     
+                </form>
+            </div>
+        </div>
+        <div class="row" id="select-all-options" style="display:none;">
+            <div class="col-md-2"></div>
+            <div class="col-md-10" id='result-image'>
+                <form action="" id='select-all' class='cell-type-form-all'>
+                    Select All: 
+                    <input type="radio" id="uwhite" name="all-cells" value="0" checked> Unstained white
+                    <input type="radio" id="swhite" name="all-cells" value="1"> Stained white
+                    <input type="radio" id="red" name="all-cells" value="2"> Red
                 </form>
             </div>
         </div>
@@ -206,6 +218,8 @@
                 // uploaded the first image
                 $('#process').removeClass('disabled');
                 $('#process').click(process);   
+                $('#select-all-options').show();
+                $('input[type=radio][name=all-cells]').change(selectAll);
             }
             
             var id = self.cellTypes.length;
@@ -219,8 +233,16 @@
             $('input[type=radio][name=cell-' + id +']').change(changedBloodType); // add listener is the blood type changes
         };
         
+        var selectAll = function(e) {
+            var index = parseInt(this.value);
+            $('.cell-type-form').each(function(i,x) {
+                x.children[index].checked = true;
+                self.cellTypes[i] = index;
+            });
+        };
+        
         var changedBloodType = function(e) {
-            var index = parseInt(this.id.match(/\d/)[0]);
+            var index = parseInt(this.value);
             self.cellTypes[index] = parseInt(this.value);
         };
         
