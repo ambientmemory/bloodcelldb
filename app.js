@@ -59,6 +59,8 @@ app.post('/process', function (req, res) {
     var results = [];
     var similarImages = [];
     
+    var types = req.body.types;
+    
     // run python script on all uploaded images
     var options = {
         args: uploaded
