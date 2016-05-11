@@ -74,8 +74,29 @@ def	overlap_contours(i,j):
 			return(-2)
 	return(-1)
 
+def actual_size(image):
+        x = len(image)
+        y = len(image[0])
+
+        i = 0
+        actual_y = 0
+        while i<y:
+                if image[x/2][i] != [255,255,255]:
+                        actual_y = y-2*i
+                        break
+                i = i + 1
+        i = 0
+        actual_x = 0
+        while i<x:
+                if image[i][y/2] != [255,255,255]:
+                        actual_x = x - 2*i
+                        break
+                i = i + 1
+
+        return (actual_x, actual_y)
+
 if __name__ == "__main__":
-	for infile in glob.glob("training-images/all/*.[jJ][pP][gG]")+glob.glob("training-images/all/*.[jJ][pP][eE][gG]"):
+	for infile in glob.glob("training-images/anemia/*.[jJ][pP][gG]")+glob.glob("training-images/anemia/*.[jJ][pP][eE][gG]"):
 		f = open('source_info.txt', 'a')
 		#We first process the filename and determine the label value
 		label_val = 0
@@ -167,7 +188,7 @@ if __name__ == "__main__":
 		for i in range(0,len(contours)):
 			rect = cv2.minAreaRect(contours[i])
 			center_color = an_image[int(rect[0][1]),int(rect[0][0])] #returns the colour of the center of the rectangular box containing the contour, the rect returns Y,X
-			if center_color[1] < 30: # stained (G < 30
+			if center_color[1] < 60: # stained (G < 30
 				cv2.drawContours(an_image,contours,i,(255,0,255),-1)
 				count_of_stained_rbc += 1
 			else:
