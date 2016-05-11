@@ -1,3 +1,12 @@
+"""
+Author : Piyali Mikherjee pm2678@columbia.edu
+Date: 04/21/2016
+This program sequentially finds all files that end with jpg, JPG, jpeg and JPEG filename extensions, then proceeds to
+load the image and display it, then read in the file name and identify its training label, read its metadata to identify
+its dimensions, and then ask the user whether this is RBC styained or WBC stained - or something else stained.
+Once this data row is accumulated, this information is written down into source_info.txt database.
+"""
+
 import os, sys, glob, random, cv2, numpy
 
 def merge_contour(i,j,i_x,i_y,j_x,j_y):
@@ -5,27 +14,8 @@ def merge_contour(i,j,i_x,i_y,j_x,j_y):
 	This is a very critical and potentially time consuming step. We need to find the nearest point of the two contours, and then splice in the
 	smaller area contour into larger area contour
 	'''
-	ar_1 = cv2.contourArea(contours_sorted[i])
-	ar_2 = cv2.contourArea(contours_sorted[j])
-	if ar_1 > ar_2:
-		d = i
-		d_x = i_x
-		d_y = i_y
-		s = j
-		s_x = j_x
-		s_y = j_y
-		ret_val = j
-	else :
-		d = j
-		d_x = j_x
-		d_y = j_y
-		s = i
-		s_x = i_x
-		s_y = i_y
-		ret_val = i
-	# end of if
-	c_d = contours_sorted[d]
-	c_s = contours_sorted[s]
+	c_d = contours[i]
+	c_s = contours[j]
 	min_dist = numpy.Infinity
 	min_i = 0
 	min_j = 0
@@ -47,22 +37,43 @@ def merge_contour(i,j,i_x,i_y,j_x,j_y):
 		new_c.append(c_s[k])
 	for k in range(min_i,len(c_d)):
 		new_c.append(c_d[k])
-	# Finally, we replace the contour 'd' with new_c, recompute the circle equivalent of new_c, and replace the data in contours_circles for index 'd'
-	#print("Debug : type of contours[d] "+str(type(contours[d]))+" and type of new_c is : "+str(type(new_c)))
-	contours_sorted[d] = numpy.asarray(new_c)
-	#print("Debug : type of contours[d] " + str(type(contours_sorted[d])))
-	(new_x, new_y), new_radius = cv2.minEnclosingCircle(contours_sorted[d])
+	# Finally, we replace the contour 'i' with new_c, recompute the circle equivalent of new_c, and replace the data in contours_circles for index 'i'
+	contours[i] = numpy.asarray(new_c)
+	(new_x, new_y), new_radius = cv2.minEnclosingCircle(contours[i])
 	new_circle_data_list = [new_x,new_y,new_radius]
-	contours_circles[d] = new_circle_data_list
-	return(ret_val)
-"""
-Author : Piyali Mikherjee pm2678@columbia.edu
-Date: 04/21/2016
-This program sequentially finds all files that end with jpg, JPG, jpeg and JPEG filename extensions, then proceeds to
-load the image and display it, then read in the file name and identify its training label, read its metadata to identify
-its dimensions, and then ask the user whether this is RBC styained or WBC stained - or something else stained.
-Once this data row is accumulated, this information is written down into source_info.txt database.
-"""
+	contours_circles[i] = new_circle_data_list
+	return
+
+def	overlap_contours(i,j):
+	# Take the 'j'th contour, from the contours_sorted array, and the for every point of the 'j' check if its inside 'i' or on 'i' or outside 'i'
+	# If we find that the contour 'j' is conpletely outside, we return -1, else if partially overlapped, we return 0, and if completely subsumed, we return +1
+	completely_outside = True
+	completely_subsumed = True
+	for k in contours[j][0]: #for every point in contour 'j'
+		k_loc = cv2.pointPolygonTest(contours[i],(k[0],k[1]),False)
+		if k_loc == 0: #Its on the contour[i]
+			completely_outside = False
+			completely_subsumed = False
+			break
+		elif k_loc == -1: #Its not subsumed
+			completely_subsumed = False
+	# end of for
+	if completely_subsumed == True:
+		return(j)
+	if completely_outside == False and completely_subsumed == False:
+		return(-1) #on the border
+	if completely_outside == True: # we test the reverse condition, thats the object 'i' might be subsumed completely within object 'i'
+		completely_subsumed = True
+		for k in contours[i][0]:  # for every point in contour 'i'
+			if cv2.pointPolygonTest(contours[j], (k[0], k[1]), False) < 1:  # Its on or outside the contour[j]
+				completely_subsumed = False
+				break
+		if completely_subsumed == True:
+			return(i)
+		else:
+			return(-2)
+	return(-1)
+
 if __name__ == "__main__":
 	for infile in glob.glob("images/*.[jJ][pP][gG]")+glob.glob("images/*.[jJ][pP][eE][gG]"):
 		f = open('source_info.txt', 'a')
@@ -101,66 +112,74 @@ if __name__ == "__main__":
 		'''
 		stain_type = "WBC" #for debugging we have shorted it out
 		# We start the actual processing of the image to extract data from it
-		blur_image = cv2.medianBlur(an_image, 5)
-		edges = cv2.Canny(blur_image, 25, 60)
-		_,contours,_ = cv2.findContours(edges,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+		edges = cv2.Canny(an_image, 25.0, 30.0,3,L2gradient=True)
+		#edges = cv2.dilate(edges,numpy.ones((1,1)),iterations=2)
+		edges = cv2.erode(edges,numpy.ones((1,1)),iterations=2)
+		_,contours,_ = cv2.findContours(edges,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 		contours = numpy.asarray(contours)
 		#The generated image will show a very large number of sub countours representing the main object.
-		#We now run a clustering algorithm that combines all contours that are located proximally
-		at_least_one_merger = False
-		debug_pass_counter = 1
-		while at_least_one_merger:
-			at_least_one_merger = False
-			print("Starting pass ",debug_pass_counter)
-			contours_area = []
-			for i in contours:
-				contours_area.append(cv2.contourArea(i))
-			sort_indices = numpy.argsort(contours_area)
-			contours_sorted = contours[sort_indices]
-			print(" count of contours : ",len(contours_sorted))
-			# Next, for each contour, we create a list of enclosing circles, and corresponding radius
-			contours_circles = []
-			for i in range(0, len(contours_sorted)):
-				(x, y), radius = cv2.minEnclosingCircle(contours_sorted[i])
-				circle_data_list = [x, y, radius]
-				contours_circles.append(circle_data_list)  # stores as list of three floating point numbers
-			# Now we generate the proximity matrix of the (remaining) contours and identify those that can be merged. We keep this doing iteratively (a very slow process)
-			# We genertate all intra contour distances
-			proximal_array = numpy.zeros((len(contours_sorted),len(contours_sorted)))
-			for i in range(0,len(contours_sorted)):
-				for j in range(0,len(contours_sorted)):
-					if (numpy.sqrt(numpy.square(contours_circles[i][0]- contours_circles[j][0]) + numpy.square(contours_circles[i][1] - contours_circles[j][1])) < 5) and (i != j):
-						proximal_array[i][j] = 1
-			# Now we scan this proximal array to find those that have a proximal entry, and once found, we "merge" the two contours, and delete the smaller one (lower index)
-			row = 0  #We do this for every row, however, cannot be a for loop as the count of rowsd will reduce as we keep merging and deleting row/columns
-			while row < proximal_array.shape[0]:    # For each row in proximal array
-				#print("In pass ",debug_pass_counter," processing row no : ",row," out of max row size of : ",proximal_array.shape[0],"\n")
-				if numpy.sum(proximal_array,axis=1)[row] == 0:  # There exists no element that is proximal to another element in this row
-					row += 1
-					continue
-				index_of_non_zero = numpy.nonzero(proximal_array[row])
-				col = index_of_non_zero[0][0]   # find the column number of the first non_zero element
-				#We prepare to merge the element at index row to element at index col
-				smaller = merge_contour(row,col,contours_circles[row][0],contours_circles[row][1],contours_circles[col][0],contours_circles[col][1]) # subsumes the smaller contour between i and j, and then accordingly replaces circle data
-				proximal_array = numpy.delete(proximal_array,smaller,0) # delete row that is smaller in area between row 'row' and col 'col'
-				proximal_array = numpy.delete(proximal_array,smaller,1) # and delete the corresponding column as well
-				contours_circles = numpy.delete(contours_circles,smaller,0)
-				contours_sorted = numpy.delete(contours_sorted, smaller,0)
-				contours_area = numpy.delete(contours_area, smaller,0)
-				contours = numpy.delete(contours, smaller,0)
-				at_least_one_merger = True #the moment there is a single merger, we restart as the contours would have changed in size and alignment
-			# end of while row < proximal_array.shape[0]
-			debug_pass_counter += 1
-			# end of while at_least_one_merger
-		# We now draw the contours
-		cv2.drawContours(an_image,contours,-1,(0,255,0),2)
+		#We now run a clustering algorithm that combines all contours that are located proximally. But we first delete all those
+		#that are not convex shapes, or are too small to represent a blood cell
+		contours_area = []
+		i = 0
+		while i < len(contours):
+			ar = cv2.contourArea(contours[i])
+			if ar < 20.0 :
+				contours = numpy.delete(contours, i,0)
+				continue
+			else:
+				contours_area.append(ar)
+				contours[i] = cv2.convexHull(contours[i]) # replace the contour with its convext hull
+			i += 1
+		# Next we delete all the contours that are overlapping another contour - if we have a partial overlap, we remove the smaller area one
+		sort_indices = numpy.argsort(contours_area)
+		sort_indices = sort_indices[::-1] # reverse the sorting order
+		contours = contours[sort_indices] #create a new view of sorted contours
+		#Next we form the list of all enclosing circle data
+		contours_circles = []
+		for i in range(0, len(contours)):
+			(x, y), radius = cv2.minEnclosingCircle(contours[i])
+			circle_data_list = [x, y, radius]
+			contours_circles.append(circle_data_list)  # stores as list of three floating point numbers
+		# Now we detect overlaps
+		i = 0
+		while i < len(contours)-1:
+			j = len(contours)-1
+			while j > i:
+				overlap = overlap_contours(i,j)
+				if  overlap > -1: #completely subsumed
+					contours = numpy.delete(contours,overlap,0)	#the function returns the index of the completely subsumed one
+					contours_circles = numpy.delete(contours_circles,overlap,0)
+					if overlap == i:
+						break
+				elif overlap == -1:
+					merge_contour(i, j, contours_circles[i][0], contours_circles[i][1], contours_circles[j][0],
+								  contours_circles[j][1])  # merges the contour j into i
+					contours = numpy.delete(contours, j, 0)
+					contours_circles = numpy.delete(contours_circles, j, 0)
+				j -= 1
+			if overlap != i:
+				i += 1
+		#end of outer while
+		# We now draw the contours. We first identify if the mean colour intensity is towards the red, and if so we fill it with red, else green
+		count_of_rbc = 0
+		count_of_stained_rbc = 0
+		for i in range(0,len(contours)):
+			rect = cv2.minAreaRect(contours[i])
+			center_color = an_image[int(rect[0][1]),int(rect[0][0])] #returns the colour of the center of the rectangular box containing the contour, the rect returns Y,X
+			if center_color[1] < 30: # stained (G < 30
+				cv2.drawContours(an_image,contours,i,(255,0,255),-1)
+				count_of_stained_rbc += 1
+			else:
+				cv2.drawContours(an_image, contours, i, (0, 255, 0), -1)
+				count_of_rbc += 1
 		cv2.namedWindow("circles", cv2.WINDOW_NORMAL)
 		cv2.imshow("circles", an_image)
-		cv2.waitKey(0)
+		cv2.waitKey(1000)
 		cv2.destroyAllWindows()
 
 		height_width = an_image.size  #get the image height and width
-		f.write(infile+" "+str(label_val)+" "+stain_type+" "+str(height_width)+"\n")
+		f.write(infile+" "+str(label_val)+" "+stain_type+" "+str(height_width)+" "+str(count_of_rbc)+" "+str(count_of_stained_rbc)+"\n")
 		#print ("debug : wrote "+infile+" "+str(label_val)+" "+stain_type+" "+str(height_width)+"\n")
 	#end of for loop for each image in training data directory
 	f.close()
