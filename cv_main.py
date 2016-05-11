@@ -75,7 +75,7 @@ def	overlap_contours(i,j):
 	return(-1)
 
 if __name__ == "__main__":
-	for infile in glob.glob("images/*.[jJ][pP][gG]")+glob.glob("images/*.[jJ][pP][eE][gG]"):
+	for infile in glob.glob("training-images/all/*.[jJ][pP][gG]")+glob.glob("training-images/all/*.[jJ][pP][eE][gG]"):
 		f = open('source_info.txt', 'a')
 		#We first process the filename and determine the label value
 		label_val = 0
@@ -115,7 +115,7 @@ if __name__ == "__main__":
 		edges = cv2.Canny(an_image, 25.0, 30.0,3,L2gradient=True)
 		#edges = cv2.dilate(edges,numpy.ones((1,1)),iterations=2)
 		edges = cv2.erode(edges,numpy.ones((1,1)),iterations=2)
-		_,contours,_ = cv2.findContours(edges,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+		contours,_ = cv2.findContours(edges,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 		contours = numpy.asarray(contours)
 		#The generated image will show a very large number of sub countours representing the main object.
 		#We now run a clustering algorithm that combines all contours that are located proximally. But we first delete all those
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 		contours_area = []
 		i = 0
 		while i < len(contours):
-			ar = cv2.contourArea(contours[i])
+                        ar = cv2.contourArea(contours[i])
 			if ar < 20.0 :
 				contours = numpy.delete(contours, i,0)
 				continue
