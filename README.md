@@ -1,7 +1,7 @@
 # bloodcelldb
 Visual Databases project that uses machine learning to identify whether images of blood slides contain acute erythroid leukemia or not. 
 
-#####Training Set Creation:
+#### Training Set Creation:
 Data sourced from: http://imagebank.hematology.org/ as well as http://library.med.utah.edu/WebPath/HEMEHTML/HEMEIDX.html#6
 * How to create/use this dataset:
   * First, we run a resizing script that forces each image into a 300x300 thumbnail (consistency in processing)
@@ -9,7 +9,7 @@ Data sourced from: http://imagebank.hematology.org/ as well as http://library.me
   * Some healthy and some infected cells are selected from the pool and then a renaming/label-creating script is run to randomize their names as well as assign a 0-1 label for further supervised learning.
 
 
-#####TODO:
+##### TODO:
 * UI:
     * Test with real response from server
 * Server:
